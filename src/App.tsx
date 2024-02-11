@@ -1,35 +1,74 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from 'react'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import SmartPaginator from "@/components/SmartPaginator.tsx";
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+export interface Transactions {
+  id: number;
+  description: string;
+  amount: number;
+  valueDate: string;
+  sourceAccountId: number;
+  destinationAccountId: number;
+  categoryId?: number | null;
 }
 
-export default App
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [transactions, setTransactions] = useState<Transactions[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const currencyFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+  const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: "short" });
+
+  useEffect(() => {
+    fetch(`http://localhost:5030/transactions?page=${currentPage}&limit=10`)
+      .then((res) => res.json())
+      .then((data) => {
+        setTotalPages(data.totalPages);
+        setTransactions(data.results);
+      });
+  }, [currentPage]);
+
+  return (
+    <div className="w-screen">
+      <Table>
+        <TableCaption>TableCaption</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10/12">Invoice</TableHead>
+            <TableHead className="w-1/12">Date</TableHead>
+            <TableHead className="text-right w-1/12">Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {
+            transactions.map(transaction => (
+              <TableRow key={transaction.id}>
+                <TableCell>{transaction.description}</TableCell>
+                <TableCell>{
+                  dateFormatter.format(Date.parse(transaction.valueDate))
+                }</TableCell>
+                <TableCell className="text-right">{
+                  currencyFormatter.format(transaction.amount / 100)
+                }</TableCell>
+              </TableRow>
+            ))
+          }
+        </TableBody>
+      </Table>
+
+      <SmartPaginator currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+    </div>
+  )
+}
