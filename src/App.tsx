@@ -11,29 +11,25 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import SmartPaginator from "@/components/SmartPaginator.tsx";
-
-export interface Transactions {
-  id: number;
-  description: string;
-  amount: number;
-  valueDate: string;
-  sourceAccountId: number;
-  destinationAccountId: number;
-  categoryId?: number | null;
-}
-
+import {client as myaFimClient, components as myaFimComponents} from "@/lib/api/myafim";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [transactions, setTransactions] = useState<Transactions[]>([]);
+  const [transactions, setTransactions] = useState<myaFimComponents["schemas"]["Transaction"][]>([]);
   const [totalPages, setTotalPages] = useState(1);
 
   const currencyFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
   const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: "short" });
 
   useEffect(() => {
-    fetch(`http://localhost:5030/transactions?page=${currentPage}&limit=10`)
-      .then((res) => res.json())
+    myaFimClient
+      .GET("/transactions", { params: { query: { page: currentPage, limit: 10 } } })
+      .then((res) => {
+        if (!res.data) {
+          throw new Error(res.error)
+        }
+        return res.data;
+      })
       .then((data) => {
         setTotalPages(data.totalPages);
         setTransactions(data.results);
